@@ -42,10 +42,15 @@ MacBook / ผู้ใช้ใน LAN ──► LAN (ในออฟฟิศ) 
 ### 1.3 ติดตั้ง
 เสียบ USB แล้วกด **F12** ตอนเปิดเครื่อง เลือก USB จากนั้นทำตามตัวติดตั้ง:
 - Language: English · Keyboard: English (US)
+- Type of install: **Ubuntu Server** (ไม่ใช่แบบ minimized) · ไม่ต้องติ๊ก Search for third-party drivers เพราะ `setup.sh` ติดตั้ง driver ให้เอง
 - Network: ปล่อยตามค่าเดิม (DHCP) แล้ว**จด IP** ที่แสดงไว้
+- Proxy: เว้นว่าง · Mirror: ใช้ค่าเดิม
 - Storage: **Use an entire disk** แล้วเลือก**ดิสก์ NVMe 1TB** ระวังอย่าเลือก HDD 2TB
+  - ⚠️ **เอาติ๊ก "Set up this disk as an LVM group" ออก** ไม่อย่างนั้นตัวติดตั้งอาจแบ่งพื้นที่ให้ระบบแค่บางส่วนของดิสก์ ทำให้โมเดลวางได้ไม่เต็ม 1TB
+  - หน้าสรุปต้องเห็น `/` ขนาดเกือบ 1TB ก่อนกด Done
 - Profile: ตั้งชื่อเครื่อง `ai-server` และตั้ง username/รหัสผ่านของคุณเอง
-- ✅ **Install OpenSSH server** (สำคัญมาก)
+- Ubuntu Pro: **Skip for now**
+- ✅ **Install OpenSSH server** (สำคัญมาก) · ถ้ามี SSH key อยู่บน GitHub เลือก Import SSH identity: from GitHub เพื่อเข้าเครื่องได้โดยไม่ต้องพิมพ์รหัสผ่าน
 - Featured snaps: ไม่ต้องเลือกอะไร
 
 เสร็จแล้วถอด USB และรีสตาร์ต จากนี้ไปถอดจอและคีย์บอร์ดออกได้เลย
