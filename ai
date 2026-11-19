@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# คำสั่งลัดสำหรับดูแล Local AI  (ติดตั้งไว้ที่ /usr/local/bin/ai โดย setup.sh)
+set -euo pipefail
+STACK_DIR="/opt/ai/stack"
+cd "$STACK_DIR"
+
+dc() { docker compose "$@"; }
+
+case "${1:-help}" in
+  status)
+    echo "== บริการ =="; dc ps --format 'table {{.Service}}\t{{.Status}}'
+    echo; echo "== GPU =="
+    nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader
+    echo; echo "== โมเดลที่อยู่ใน VRAM =="; dc exec -T ollama ollama ps
+    echo; echo "== พื้นที่ดิสก์ =="; df -h / /mnt/hdd /mnt/nas-backup 2>/dev/null || true
+    ;;
+  logs)      dc logs --tail=100 -f ${2:+"$2"} ;;
+  restart)   dc restart ${2:+"$2"} ;;
+  start)     dc up -d ;;
+  stop)      dc stop ;;
+  models)    dc exec -T ollama ollama list ;;
+  pull)      [ -n "${2:-}" ] || { echo "ใช้: ai pull <ชื่อโมเดล>"; exit 1; }; dc exec -T ollama ollama pull "$2" ;;
+  remove)    [ -n "${2:-}" ] || { echo "ใช้: ai remove <ชื่อโมเดล>"; exit 1; }; dc exec -T ollama ollama rm "$2" ;;
+  free-gpu)
+    for m in $(dc exec -T ollama ollama ps | awk 'NR>1 {print $1}'); do
+      dc exec -T ollama ollama stop "$m" && echo "คืน VRAM จาก $m แล้ว"
+    done
+    ;;
+  backup)    sudo "$STACK_DIR/scripts/backup-to-nas.sh" ;;
+  update)
+    echo "สำรองข้อมูลก่อนอัปเดต..."
+    sudo "$STACK_DIR/scripts/backup-to-nas.sh"
+    dc pull && dc up -d && docker image prune -f
+    echo "อัปเดตเสร็จ ตรวจสถานะด้วย: ai status"
+    ;;
+  help|*)
+    cat <<'EOF'
+คำสั่ง ai:
+  ai status            ดูสถานะบริการ, GPU, โมเดลใน VRAM, พื้นที่ดิสก์
+  ai logs [บริการ]       ดู log (เช่น ai logs open-webui) กด Ctrl+C เพื่อออก
+  ai restart [บริการ]    รีสตาร์ตทั้งหมด หรือเฉพาะบริการ
+  ai start | ai stop   เปิด/ปิดทั้งระบบ
+  ai models            ดูโมเดลที่ดาวน์โหลดไว้
+  ai pull <โมเดล>       ดาวน์โหลดโมเดล (ดูชื่อที่ ollama.com/library)
+  ai remove <โมเดล>     ลบโมเดล
+  ai free-gpu          คืน VRAM ทันที (ก่อนใช้ ComfyUI)
+  ai backup            สำรองข้อมูลไป NAS ทันที
+  ai update            backup แล้วอัปเดตทุกบริการเป็นเวอร์ชันล่าสุด
+EOF
+    ;;
+esac

@@ -1,0 +1,8 @@
+# secrets and runtime data
+.env
+*.env.local
+# macOS
+.DS_Store
+
+# internal notes (org-specific, never publish)
+internal/
