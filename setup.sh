@@ -26,8 +26,14 @@ apt-get install -y ca-certificates curl gnupg git jq openssl rsync nfs-common \
 systemctl enable --now cockpit.socket
 
 # อัปเดตความปลอดภัยอัตโนมัติ แต่ห้ามรีสตาร์ตเอง
+# และไม่อัปเดต NVIDIA driver เอง เพราะ driver ใหม่ใช้ได้หลังรีสตาร์ตเท่านั้น
+# ถ้าอัปเดตเองกลางคัน GPU จะใช้ไม่ได้ (Driver/library version mismatch) จนกว่าจะรีสตาร์ต
 cat > /etc/apt/apt.conf.d/52local-ai-no-reboot <<'EOF'
 Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Package-Blacklist {
+    "nvidia-";
+    "libnvidia-";
+};
 EOF
 
 # ---------------------------------------------------------------- 2. NVIDIA driver
