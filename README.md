@@ -9,6 +9,7 @@
 | **ดูแลระบบ** | คำสั่งลัด `ai` + หน้าเว็บ Cockpit |
 | **ค่าใช้จ่ายต่อเดือน** | ค่าไฟประมาณ 400–700 บาท (ถ้ามีฮาร์ดแวร์อยู่แล้ว) |
 | **📘 คู่มือติดตั้งและใช้งาน** | [docs/install.md](docs/install.md) (ภาษาไทย ทีละขั้น) |
+| **🌐 คู่มือเครือข่าย (กรณีไม่มีสาย LAN ระหว่างชั้น)** | [docs/network-mikrotik.md](docs/network-mikrotik.md) (MikroTik hAP ac² เป็น Wi-Fi client) |
 
 ---
 
@@ -126,6 +127,7 @@
 Lek-AI/
 ├── README.md                  ← ภาพรวม (ไฟล์นี้)
 ├── docs/install.md            ← คู่มือติดตั้งและใช้งานทีละขั้น (มือใหม่ทำตามได้)
+├── docs/network-mikrotik.md   ← คู่มือเครือข่าย: MikroTik เป็น Wi-Fi client ปล่อย LAN ให้ server/NAS
 ├── setup.sh                   ← ติดตั้งทั้งระบบด้วยคำสั่งเดียว
 ├── ai                         ← คำสั่งลัดสำหรับดูแลระบบ (ai status, ai update ...)
 ├── docker-compose.yml         ← Ollama, Open WebUI, Docling, n8n, PostgreSQL
