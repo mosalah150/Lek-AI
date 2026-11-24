@@ -1,217 +1,238 @@
-# Local AI สำหรับองค์กร: คู่มือติดตั้ง (Ubuntu สำหรับมือใหม่)
+# คู่มือติดตั้ง Lek-AI บน Windows (ไม่ใช้ Docker)
 
-Dell Precision 5820 เปิดทิ้งไว้เป็น server · จัดการทั้งหมดจาก MacBook · ไม่ต้องจำคำสั่ง Linux
+AI Server เปิดทิ้งไว้ · จัดการจาก MacBook ผ่าน Remote Desktop · เหมาะกับผู้ใช้ 1–10 คน
 
-> ภาพรวมโครงการอยู่ที่ [README](../README.md) · เวอร์ชัน Windows อยู่ที่ [`_windows-version/`](../_windows-version/)
+> ภาพรวมโครงการอยู่ที่ [README](../README.md) · ถ้าไม่มีสาย LAN ระหว่าง router กับ server/NAS ให้ทำ [คู่มือเครือข่าย MikroTik](network-mikrotik.md) ก่อน · ชุดติดตั้ง Ubuntu อยู่ที่ [`_ubuntu-version/`](../_ubuntu-version/)
 
 ## สิ่งที่จะได้
 
 ```
-MacBook / ผู้ใช้ใน LAN ──► LAN (ในออฟฟิศ) / Tailscale (ข้างนอก)
-                                │
-┌──────────── Dell Precision 5820 · Ubuntu Server 24.04 ───────────────┐
-│  Open WebUI :3000 ── แชท, ถามตอบเอกสาร, บัญชีผู้ใช้                        │
-│  Ollama (GPU) ────── สมองของ AI (ไม่เปิดพอร์ตออกข้างนอก)                    │
-│  Docling (CPU) ───── แปลง PDF/ตาราง                                   │
-│  n8n :5678 + PostgreSQL ── งานอัตโนมัติ                                │
-│  ComfyUI (ตัวเลือก) ── สร้างภาพ/เสียง/3D                                  │
-│  Cockpit :9090 ───── หน้าเว็บจัดการเครื่อง (แทนการพิมพ์คำสั่ง)                  │
-│  NVMe 1TB = ระบบ + โมเดล + ข้อมูล  ·  HDD 2TB = สำเนาเอกสาร              │
-└───────────────────────────────┬──────────────────────────────────────┘
-                                │ NFS
-             Synology DS918+ (RAID5 8TB): ai-docs · ai-backup · Snapshot
+ผู้ใช้ (เบราว์เซอร์) ──► Open WebUI :3000 ──► LM Studio :1234 (เฉพาะในเครื่อง) ──► RTX 6000
+                       บัญชี, สิทธิ์, RAG      โหลดโมเดล, API
+คุณ (Remote Desktop) ──► LM Studio: ดาวน์โหลดและทดลองโมเดล · ComfyUI: สร้างภาพ/วิดีโอ
+ข้างนอกบ้าน ──► Tailscale ──► https://ai-server.<tailnet>.ts.net
+ทุกคืน ──► backup ไป NAS (SMB)
 ```
 
-**คำสั่ง Linux ที่ต้องใช้จริงมีแค่ 4 คำสั่ง:** `ssh` (เข้าเครื่อง), `sudo bash setup.sh` (ติดตั้ง), `ai status` (ดูสถานะ) และ `ai update` (อัปเดต) ที่เหลือทำผ่านหน้าเว็บ
+| โปรแกรม | ติดตั้งแบบ | หน้าที่ |
+|---|---|---|
+| **LM Studio** | โปรแกรม Windows | เครื่องยนต์ AI: ดาวน์โหลดและรันโมเดลบน GPU |
+| **Open WebUI** | Python (ติดตั้งให้โดยสคริปต์) | หน้าแชทของทีม: บัญชีผู้ใช้ ประวัติแชท และถามตอบเอกสาร (RAG) |
+| **Tailscale** | โปรแกรม Windows | เข้าใช้จากข้างนอก + HTTPS ที่ถูกต้อง |
+| ComfyUI Desktop | โปรแกรม Windows (ตัวเลือก) | สร้างภาพ วิดีโอ และ asset เกม |
 
-> **ไม่มีสาย LAN ระหว่าง router กับ server/NAS?** ตั้งเครือข่ายตาม [network-mikrotik.md](network-mikrotik.md) ให้เสร็จก่อน แล้วใช้ IP ตามคู่มือนั้น (server `192.168.88.20`, NAS `192.168.88.10`)
+**ค่าที่ใช้ในคู่มือ:** server `192.168.88.20` · NAS `192.168.88.10` (ตามคู่มือเครือข่าย) ถ้าเครือข่ายของคุณต่างจากนี้ ให้แทนด้วย IP จริง
 
 ---
 
-## ขั้นที่ 1: ติดตั้ง Ubuntu (ประมาณ 30 นาที)
+## ขั้นที่ 1: ติดตั้ง Windows 11 Pro
 
-> ⚠️ **การติดตั้งจะลบข้อมูลทั้งหมดบน NVMe** ถ้ามีไฟล์สำคัญ ให้สำรองออกก่อน
+> ⚠️ **การติดตั้งใหม่จะลบข้อมูลบนดิสก์ที่เลือก** สำรองไฟล์สำคัญออกก่อน
 
-### 1.1 เตรียม USB บน MacBook
-1. ดาวน์โหลด **Ubuntu Server 24.04 LTS** จาก https://ubuntu.com/download/server
-2. ติดตั้ง **balenaEtcher** (https://etcher.balena.io) แล้วเขียนไฟล์ ISO ลง USB (ขนาด 4GB ขึ้นไป)
+1. **BIOS ของ Dell 5820** (กด F2 ตอนเปิดเครื่อง): Power Management > **AC Recovery = Power On** (เปิดเครื่องเองเมื่อไฟกลับมา)
+2. ทำ USB ติดตั้งด้วย **Media Creation Tool** จาก microsoft.com แล้วติดตั้ง **Windows 11 Pro** ลง **NVMe** (ระวังอย่าเลือก HDD)
+3. ตั้งชื่อเครื่องเป็น `ai-server`
+4. ติดตั้ง **NVIDIA RTX Enterprise Driver** (driver สำหรับการ์ดตระกูล Quadro) จาก nvidia.com แล้วรีสตาร์ต
+5. Windows Update ให้ครบจนไม่มีอัปเดตเหลือ แล้วรีสตาร์ต
+6. เสียบสาย LAN ที่ **ether2** ของ hAP แล้วจอง IP `192.168.88.20` ตามคู่มือเครือข่าย (ขั้นที่ 8)
 
-### 1.2 ตั้งค่า BIOS ของ 5820 (กด **F2** ตอนเปิดเครื่อง)
-- **Storage > SATA/NVMe Operation** = **AHCI/NVMe** (ถ้าเป็น "RAID On" ตัวติดตั้งจะมองไม่เห็น NVMe)
-- **Power Management > AC Recovery** = **Power On** (เปิดเครื่องเองเมื่อไฟกลับมา)
-- **Secure Boot** = Disabled (ช่วยให้ติดตั้ง NVIDIA driver ได้ง่ายขึ้น)
+**HDD 2TB:** เปิด **Disk Management** ถ้า HDD ยังไม่มีไดรฟ์ ให้คลิกขวา > New Simple Volume (ระวัง: การ format จะลบข้อมูลบน HDD) แล้วจดตัวอักษรไดรฟ์ไว้ เช่น `D:`
 
-### 1.3 ติดตั้ง
-เสียบ USB แล้วกด **F12** ตอนเปิดเครื่อง เลือก USB จากนั้นทำตามตัวติดตั้ง:
-- Language: English · Keyboard: English (US)
-- Type of install: **Ubuntu Server** (ไม่ใช่แบบ minimized) · ไม่ต้องติ๊ก Search for third-party drivers เพราะ `setup.sh` ติดตั้ง driver ให้เอง
-- Network: ปล่อยตามค่าเดิม (DHCP) แล้ว**จด IP** ที่แสดงไว้
-- Proxy: เว้นว่าง · Mirror: ใช้ค่าเดิม
-- Storage: **Use an entire disk** แล้วเลือก**ดิสก์ NVMe 1TB** ระวังอย่าเลือก HDD 2TB
-  - ⚠️ **เอาติ๊ก "Set up this disk as an LVM group" ออก** ไม่อย่างนั้นตัวติดตั้งอาจแบ่งพื้นที่ให้ระบบแค่บางส่วนของดิสก์ ทำให้โมเดลวางได้ไม่เต็ม 1TB
-  - หน้าสรุปต้องเห็น `/` ขนาดเกือบ 1TB ก่อนกด Done
-- Profile: ตั้งชื่อเครื่อง `ai-server` และตั้ง username/รหัสผ่านของคุณเอง
-- Ubuntu Pro: **Skip for now**
-- ✅ **Install OpenSSH server** (สำคัญมาก) · ถ้ามี SSH key อยู่บน GitHub เลือก Import SSH identity: from GitHub เพื่อเข้าเครื่องได้โดยไม่ต้องพิมพ์รหัสผ่าน
-- Featured snaps: ไม่ต้องเลือกอะไร
+## ขั้นที่ 2: ดาวน์โหลดชุดติดตั้ง
 
-เสร็จแล้วถอด USB และรีสตาร์ต จากนี้ไปถอดจอและคีย์บอร์ดออกได้เลย
+บน server เปิดเบราว์เซอร์ไปที่ `https://github.com/mosalah150/Lek-AI` > ปุ่ม **Code** > **Download ZIP** แล้วแตกไฟล์ไว้ที่ `C:\Lek-AI`
 
-> **แนะนำ:** จอง IP ของ 5820 ไว้ใน router (DHCP reservation) เพื่อให้ IP ไม่เปลี่ยน
+## ขั้นที่ 3: รันสคริปต์ติดตั้ง (ประมาณ 20–30 นาที)
 
-## ขั้นที่ 2: รันสคริปต์ติดตั้งจาก MacBook (ประมาณ 30–40 นาที)
+คลิกขวาที่ปุ่ม Start > **Terminal (Admin)** แล้วรันทีละบรรทัด:
 
-เปิด **Terminal** บน MacBook แล้วรันทีละบรรทัด (แก้ `user` และ IP ให้ตรงกับของคุณ)
-
-ส่งโฟลเดอร์นี้ไปที่ server:
-
-```bash
-gh repo clone mosalah150/Lek-AI ~/Lek-AI
+```powershell
+cd C:\Lek-AI
 ```
 
-```bash
-scp -r ~/Lek-AI user@192.168.1.50:~/local-ai
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
 ```
 
-(คำสั่งแรกดาวน์โหลด repo มาที่ MacBook ก่อน ถ้ามีโฟลเดอร์อยู่แล้วก็ข้ามได้)
-
-เข้าไปที่ server:
-
-```bash
-ssh user@192.168.1.50
+```powershell
+.\scripts\install.ps1
 ```
 
-รันสคริปต์ติดตั้ง (ตอนนี้คุณอยู่บน server แล้ว):
+สคริปต์ทำให้ทั้งหมด:
+- ตั้งเครื่องไม่ให้หลับ และให้ Windows Update **ไม่รีสตาร์ตเอง**
+- เปิด Remote Desktop
+- เปิด firewall พอร์ต 3000 ให้ใน LAN และ**ปิดพอร์ต 1234 ของ LM Studio** ไม่ให้เครื่องอื่นเรียกตรง
+- ติดตั้ง Python, Tailscale, LM Studio และ Open WebUI
+- ตั้งให้ Open WebUI **เริ่มเองตอนบูต** โดยไม่ต้องรอใครล็อกอิน
+- สร้างรหัสลับไว้ที่ `C:\ai\config.json`
 
-```bash
-cd ~/local-ai && sudo bash setup.sh
+ระหว่างทาง สคริปต์จะแสดง**ลิงก์ล็อกอิน Tailscale** ให้เปิดในเบราว์เซอร์แล้วล็อกอิน
+
+> ถ้าสคริปต์หยุดเพราะหา Python ไม่เจอ ให้ปิด Terminal เปิดใหม่แบบ Admin แล้วรันซ้ำ (รันซ้ำได้อย่างปลอดภัย)
+
+## ขั้นที่ 4: Tailscale
+
+1. ติดตั้ง **Tailscale** บน MacBook (App Store) แล้วล็อกอิน**บัญชีเดียวกัน**
+2. https://login.tailscale.com/admin/dns: เปิด **MagicDNS** และ **HTTPS Certificates**
+3. https://login.tailscale.com/admin/machines: ที่เครื่อง `ai-server` > ⋯ > **Disable key expiry** (ไม่อย่างนั้นเครื่องจะหลุดทุก 180 วัน)
+4. ถ้าขั้นที่ 3 มีข้อความเตือนเรื่อง `tailscale serve` ให้รัน `.\scripts\install.ps1` อีกรอบ
+
+ผลที่ได้: เปิด Open WebUI ได้จากทุกที่ที่ `https://ai-server.<ชื่อ-tailnet>.ts.net` พร้อมรูปแม่กุญแจถูกต้อง
+
+## ขั้นที่ 5: ตั้งค่า LM Studio
+
+เปิด **LM Studio** จากเมนู Start (ชื่อเมนูอาจต่างเล็กน้อยตามเวอร์ชัน)
+
+**5.1 ดาวน์โหลดโมเดล** (แท็บ Discover หรือรูปแว่นขยาย):
+
+| โมเดล | ใช้ทำ | ขนาดโดยประมาณ |
+|---|---|---|
+| **Qwen3 30B A3B** (GGUF, Q4_K_M) | ตัวหลัก: แชท สรุป RAG ภาษาไทย | ~18GB |
+| **Qwen3 Coder 30B A3B** (GGUF, Q4_K_M) | เขียนโค้ด | ~18GB |
+
+LM Studio จะบอกว่าโมเดลใส่ใน VRAM ได้พอดีหรือไม่ ให้เลือกรุ่นที่ขึ้นว่า **Full GPU Offload** ได้ (รุ่นใหม่ออกบ่อย ใช้รุ่นล่าสุดที่ใกล้เคียงได้)
+
+**5.2 เปิด server** (แท็บ **Developer**):
+- เปิดสวิตช์ **Status: Running** ที่พอร์ต `1234`
+- **ปิด** Serve on Local Network (ให้รับเฉพาะในเครื่อง เพราะ Open WebUI อยู่เครื่องเดียวกัน)
+- เปิด **Just-in-Time model loading** และตั้ง **Auto unload** เมื่อว่าง 10–30 นาที (คืน VRAM ให้ ComfyUI)
+
+**5.3 ให้ server เริ่มเองหลังบูต** (Settings): เปิดตัวเลือกประมาณ **Run LLM server on login** / ใช้งานแบบ headless
+
+**5.4 ติดตั้งคำสั่ง `lms`** (ใช้กับคำสั่ง `ai models` และ `ai free-gpu`): เปิด Terminal ใหม่แล้วรัน
+
+```powershell
+& "$env:USERPROFILE\.lmstudio\bin\lms.exe" bootstrap
 ```
 
-สคริปต์จะ**หยุดหนึ่งครั้ง**หลังติดตั้ง NVIDIA driver ให้รีสตาร์ต รอราว 2 นาที แล้วเข้าใหม่และรันซ้ำ:
+**5.5 ตั้งค่าโมเดล:** ในหน้าโหลดโมเดล ตั้ง **Context Length** ราว 16,000–32,000 และ **GPU Offload** สูงสุด
 
-```bash
-sudo reboot
+## ขั้นที่ 6: Autologon (ให้ระบบขึ้นเองหลังไฟดับ)
+
+LM Studio เริ่มทำงานเมื่อมีคนล็อกอินเท่านั้น จึงต้องให้ Windows ล็อกอินเอง:
+
+1. ดาวน์โหลด **Autologon** จาก Microsoft Sysinternals (learn.microsoft.com/sysinternals) แล้วตั้งให้บัญชีของคุณ (เครื่องมือนี้เก็บรหัสผ่านแบบเข้ารหัส)
+2. สั่งล็อกหน้าจอทันทีหลังล็อกอินอัตโนมัติ เพื่อไม่ให้คนที่เดินผ่านใช้เครื่องได้ (Terminal แบบ Admin):
+
+```powershell
+schtasks /Create /TN "Lek-AI Lock after autologon" /TR "rundll32.exe user32.dll,LockWorkStation" /SC ONLOGON /RU $env:USERNAME /DELAY 0002:00
 ```
 
-```bash
-ssh user@192.168.1.50
+3. ทดสอบ: รีสตาร์ตเครื่อง รอ 5 นาที แล้วรัน `ai status` ผ่าน Remote Desktop ต้องเห็นทั้ง Open WebUI และ LM Studio ทำงาน
+
+## ขั้นที่ 7: ตั้งค่า Open WebUI ครั้งแรก
+
+1. เปิด `http://localhost:3000` (หรือ URL ของ Tailscale) แล้วสมัครบัญชีแรก บัญชีนี้จะเป็น **admin**
+2. **Admin Settings > Connections:** ตรวจว่ามีการเชื่อมต่อแบบ OpenAI ที่ `http://127.0.0.1:1234/v1` และเห็นโมเดลจาก LM Studio
+3. **Admin Settings > Documents:** ตรวจว่า Embedding Model เป็น `BAAI/bge-m3` และเปิด Hybrid Search กับ Reranking (`BAAI/bge-reranker-v2-m3`) ไว้ ครั้งแรกระบบจะดาวน์โหลดโมเดลเหล่านี้ให้เอง (ราว 3GB)
+4. **Admin Settings > Models:** ตั้งโมเดลหลักเป็นค่าเริ่มต้น
+5. ใช้คนเดียว: **Admin Settings > General > ปิด Enable New Sign Ups** ได้เลย · ใช้หลายคน: ให้ทุกคนสมัครก่อน อนุมัติที่ Admin Panel > Users แล้วค่อยปิด
+6. (หลายคน) สร้าง **Groups** ตามแผนก และ **Knowledge** แยกตามกลุ่ม
+
+## ขั้นที่ 8: NAS และ backup
+
+### บน DSM
+1. สร้าง Shared Folder `ai-docs` (เอกสารสำหรับ AI) และ `ai-backup`
+2. สร้างผู้ใช้ `ai-backup` บน NAS:
+   - `ai-backup`: **Read/Write**
+   - `ai-docs`: **Read only**
+   - **ห้ามให้ผู้ใช้อื่นเข้า `ai-backup`** เพราะมีไฟล์รหัสลับ `config.json`
+3. **Snapshot Replication:** snapshot ทั้งสองโฟลเดอร์ทุกชั่วโมง เก็บ 14 วัน (ต้องเป็น volume แบบ Btrfs ถ้าเป็น ext4 ให้ข้ามข้อนี้ และเปิด Recycle Bin ของ `ai-docs` แทน)
+4. Control Panel > Hardware & Power: ✅ **Restart automatically when power supply issue is fixed**
+
+### บน server (Terminal แบบ Admin)
+
+```powershell
+cd C:\Lek-AI
 ```
 
-```bash
-cd ~/local-ai && sudo bash setup.sh
+```powershell
+.\scripts\setup-backup.ps1
 ```
 
-ระหว่างทาง สคริปต์จะแสดง**ลิงก์ล็อกอิน Tailscale** ให้คัดลอกไปเปิดในเบราว์เซอร์บน MacBook แล้วล็อกอิน (สมัครฟรีด้วยบัญชี Google หรือ Microsoft ได้)
+สคริปต์จะถาม IP ของ NAS, ไดรฟ์ของ HDD และผู้ใช้/รหัสผ่านของ NAS แล้วตั้ง backup ทุกคืน และทดลอง backup ให้หนึ่งครั้ง
 
-## ขั้นที่ 3: Tailscale สำหรับเข้าใช้จากข้างนอก
+| ข้อมูล | ต้นฉบับ | สำเนา |
+|---|---|---|
+| แชท, ผู้ใช้, Knowledge, ค่าตั้ง | `C:\ai` บน NVMe | NAS `ai-backup` ทุกคืน 02:00 (เก็บ 14 วัน) |
+| เอกสาร | NAS `ai-docs` | HDD ของ server ทุกคืน 02:30 |
+| โมเดล | LM Studio บน NVMe | ไม่ต้อง backup เพราะดาวน์โหลดใหม่ได้ |
 
-1. ติดตั้ง **Tailscale** บน MacBook (จาก App Store) แล้วล็อกอิน**บัญชีเดียวกัน**
-2. เปิด https://login.tailscale.com/admin/dns แล้วเปิด **MagicDNS** และ **HTTPS Certificates**
-3. ถ้าตอนรัน setup.sh มีข้อความเตือนเรื่อง `tailscale serve` ให้รัน `sudo bash setup.sh` อีกรอบหลังเปิดสองอย่างนี้
+## ขั้นที่ 9 (ตัวเลือก): ComfyUI
 
-ผลที่ได้:
-- เปิด Open WebUI ได้จากทุกที่ที่ `https://ai-server.<ชื่อ-tailnet>.ts.net`
-- SSH เข้าเครื่องจากข้างนอกได้ด้วย `ssh user@ai-server`
+1. ดาวน์โหลด **ComfyUI Desktop** สำหรับ Windows จาก comfy.org แล้วติดตั้ง (เก็บโมเดลไว้บน NVMe)
+2. ก่อนสร้างภาพ ให้คืน VRAM จาก LM Studio ด้วย `ai free-gpu`
+3. เปิดจาก MacBook ผ่าน Tailscale (Terminal แบบ Admin บน server):
 
-> แพ็กเกจฟรีของ Tailscale จำกัดจำนวนผู้ใช้ เพื่อนร่วมงานที่ใช้ในออฟฟิศให้เข้าผ่าน LAN ที่ `http://<IP>:3000`
-
-## ขั้นที่ 4: ตั้งค่า NAS (DS918+) และ backup
-
-### บนหน้าเว็บ DSM
-1. Control Panel > File Services > NFS: ✅ **Enable NFS**
-2. สร้าง Shared Folder `ai-docs` และ `ai-backup`
-3. Shared Folder > Edit > **NFS Permissions** > Create โดยใส่ Hostname/IP = IP ของ 5820:
-   - `ai-docs`: Privilege = **Read Only**
-   - `ai-backup`: Privilege = **Read/Write**, Squash = **Map all users to admin**
-4. **Snapshot Replication** (ติดตั้งจาก Package Center): ตั้ง snapshot ทั้งสองโฟลเดอร์ทุกชั่วโมง เก็บ 14 วัน
-5. Control Panel > Hardware & Power: ✅ **Restart automatically when power supply issue is fixed**
-6. Storage Manager > HDD แต่ละลูก > Settings: **ปิด Write cache** (แนะนำถ้าไม่มี UPS: ลดความเสียหายเมื่อไฟดับ)
-
-### บน server
-```bash
-cd ~/local-ai && sudo bash scripts/setup-backup.sh
-```
-สคริปต์จะถาม IP ของ NAS แล้วเชื่อมต่อ ตั้ง backup ทุกคืนตอนตีสอง และทดลอง backup ให้หนึ่งครั้ง
-
-## ขั้นที่ 5: ใช้ HDD 2TB (ผ่านหน้าเว็บ Cockpit)
-
-1. เปิด `https://<IP>:9090` บน MacBook (เบราว์เซอร์จะเตือนเรื่อง certificate ให้กด Advanced > Proceed) แล้วล็อกอินด้วย user ของ Ubuntu
-2. เมนู **Storage** > เลือก HDD 2TB
-   - ⚠️ **ถ้าในดิสก์มีข้อมูลสำคัญ ให้สำรองออกก่อน** เพราะการ Format จะลบทุกอย่าง
-   - กด **Create partition table** แล้ว **Create partition**: Type = ext4, Mount point = `/mnt/hdd`, ✅ Mount at boot
-3. หลังจากนั้น การสำรองเอกสารจาก NAS ลง HDD จะเริ่มทำงานเองทุกคืน
-
-## ขั้นที่ 6: ตั้งค่า Open WebUI ครั้งแรก
-
-1. เปิด `http://<IP>:3000` แล้วสมัครบัญชีแรก บัญชีนี้จะเป็น **admin**
-2. ให้เพื่อนร่วมงานสมัครเข้ามา แล้วอนุมัติที่ Admin Panel > Users เมื่อครบแล้ว Admin Settings > General > **ปิด Enable New Sign Ups**
-3. Admin Panel > Users > **Groups**: สร้างกลุ่มตามแผนก
-4. Workspace > **Knowledge**: สร้างคลังเอกสารแยกตามแผนก อัปโหลดเอกสาร แล้วกำหนดสิทธิ์รายกลุ่ม
-5. Admin Settings > Models: ตั้ง `qwen3:30b-a3b` เป็นโมเดลเริ่มต้น
-
-## ขั้นที่ 7: n8n สำหรับงานอัตโนมัติ
-
-1. เปิด `http://<IP>:5678` แล้วสร้างบัญชี owner
-2. Credentials > New > **Ollama** แล้วตั้ง Base URL = `http://ollama:11434`
-3. ไอเดีย workflow แรก: ทุกเช้าดึงอีเมลหรือรายงานมาให้ AI สรุป แล้วส่งเข้า LINE หรือ Slack
-
-## ขั้นที่ 8 (ตัวเลือก): ComfyUI สำหรับสร้างภาพ marketing และ asset เกม
-
-```bash
-cd ~/local-ai && sudo bash scripts/install-comfyui.sh
+```powershell
+& "$env:ProgramFiles\Tailscale\tailscale.exe" serve --bg --https=8443 8000
 ```
 
-- เปิดจาก MacBook (ต้องเปิด Tailscale ไว้) ที่ `https://ai-server.<tailnet>.ts.net:8443`
-- **ก่อนสร้างภาพ ให้รัน `ai free-gpu`** เพื่อคืน VRAM จาก LLM
-- ตรวจ license ของแต่ละโมเดลก่อนนำภาพไปใช้เชิงพาณิชย์
+แล้วเปิด `https://ai-server.<tailnet>.ts.net:8443` (เปลี่ยน `8000` เป็นพอร์ตที่ ComfyUI ใช้จริง ดูได้ในหน้าตั้งค่าของ ComfyUI)
+
+**ตรวจ license ของแต่ละโมเดลก่อนนำภาพไปใช้เชิงพาณิชย์**
 
 ---
 
-## ใช้งานประจำวัน: คำสั่ง `ai`
+## ใช้งานประจำวัน
 
-SSH เข้าเครื่องแล้วพิมพ์:
+**จัดการจาก MacBook:** ติดตั้ง **Windows App** (ชื่อเดิม Microsoft Remote Desktop) จาก App Store แล้วเชื่อมไปที่ `192.168.88.20` (ในบ้าน) หรือ `ai-server` (ผ่าน Tailscale จากที่ไหนก็ได้)
+
+**คำสั่ง `ai`** (เปิด Terminal บน server):
 
 | คำสั่ง | ใช้เมื่อ |
 |---|---|
 | `ai status` | อยากรู้ว่าระบบปกติไหม |
-| `ai logs open-webui` | มีอะไรผิดปกติ และอยากดู log (กด Ctrl+C เพื่อออก) |
-| `ai restart` | ระบบค้าง ให้รีสตาร์ตทุกบริการ |
-| `ai pull <ชื่อ>` / `ai remove <ชื่อ>` | เพิ่มหรือลบโมเดล (ดูชื่อที่ ollama.com/library) |
+| `ai logs` | มีปัญหา อยากดู log ของ Open WebUI (Ctrl+C เพื่อออก) |
+| `ai restart` | Open WebUI ค้าง (Terminal แบบ Admin) |
+| `ai models` | ดูโมเดลใน LM Studio |
 | `ai free-gpu` | ก่อนใช้ ComfyUI |
-| `ai backup` | อยากสำรองข้อมูลทันที |
-| `ai update` | อัปเดตทุกอย่าง (ระบบจะ backup ให้ก่อนอัตโนมัติ) |
+| `ai backup` | สำรองข้อมูลทันที (Terminal แบบ Admin) |
+| `ai update` | อัปเดต Open WebUI โดย backup ให้ก่อน (Terminal แบบ Admin) |
 
-**Cockpit** (`https://<IP>:9090`) ใช้ดู CPU, RAM, ดิสก์, ติดตั้ง update ของ Ubuntu และรีสตาร์ตเครื่องผ่านหน้าเว็บได้ มีเมนู Terminal ในตัวด้วย
+**ที่อยู่สำหรับใช้งาน:**
+
+| | ในบ้านชั้นบน | ในบ้านชั้นล่าง | นอกบ้าน (Tailscale) |
+|---|---|---|---|
+| แชท AI | `http://192.168.88.20:3000` | `http://192.168.1.30:3000` | `https://ai-server.<tailnet>.ts.net` |
 
 ## ดูแลเดือนละครั้ง (ประมาณ 15 นาที)
 
-1. `ai update`
-2. Cockpit > **Software Updates** > Install all updates > Restart
-3. หลังเครื่องบูตขึ้นมา รอราว 3 นาที แล้วรัน `ai status` ตรวจว่าทุกบริการขึ้นครบ
-4. ตรวจ backup ด้วย `tail /var/log/ai-backup.log` ต้องเห็นคำว่า `OK` ของเมื่อคืน
+1. `ai update` (Terminal แบบ Admin)
+2. LM Studio: ติดตั้งอัปเดตเมื่อโปรแกรมแจ้ง
+3. Windows Update: ติดตั้งแล้วรีสตาร์ตด้วยตัวเอง จากนั้นรอ 5 นาทีแล้ว `ai status`
+4. ตรวจ backup: `ai status` ดูหัวข้อ Backup ล่าสุดต้องขึ้น `OK`
+5. **ทดสอบกู้คืนอย่างน้อยไตรมาสละครั้ง** (ดูด้านล่าง)
 
-ผลที่ตั้งไว้ให้แล้ว: Ubuntu ติดตั้งอัปเดตความปลอดภัยเองอัตโนมัติ แต่**ไม่รีสตาร์ตเอง**
+## กู้คืน
+
+1. ติดตั้งเครื่องใหม่ตามขั้นที่ 1–3
+2. หยุด Open WebUI: `ai restart` จะเริ่มใหม่อัตโนมัติ ดังนั้นให้สั่ง `Stop-ScheduledTask "Lek-AI Open WebUI"` แทน
+3. คัดลอกโฟลเดอร์ backup ล่าสุดจาก `\\192.168.88.10\ai-backup` มาไว้ที่เครื่อง แล้วแตกไฟล์:
+
+```powershell
+tar.exe -xzf .\open-webui-data.tgz -C C:\ai\open-webui
+```
+
+4. คัดลอก `config.json` จาก backup ทับ `C:\ai\config.json` (เพื่อใช้รหัสลับเดิม ไม่อย่างนั้นทุกคนจะต้องล็อกอินใหม่)
+5. `Start-ScheduledTask "Lek-AI Open WebUI"` แล้วตรวจด้วย `ai status`
 
 ## แก้ปัญหาเบื้องต้น
 
 | อาการ | ลองทำ |
 |---|---|
-| เปิดหน้าเว็บไม่ได้ | `ai status` ถ้ามีบริการไหนไม่ขึ้น ให้ `ai restart` |
-| หลังไฟดับ เข้าไม่ได้ | รอ 3–5 นาที เพราะเครื่องและ NAS ต้องบูต ถ้ายังไม่ได้ ให้ตรวจว่า 5820 เปิดอยู่ไหม |
-| AI ตอบช้ามากผิดปกติ | `ai status` ดูว่า GPU ถูกใช้งานไหม ถ้า `nvidia-smi` error ให้รีสตาร์ตเครื่อง |
-| `nvidia-smi` ขึ้น `Driver/library version mismatch` | NVIDIA driver เพิ่งถูกอัปเดต ให้รีสตาร์ตเครื่องหนึ่งครั้ง (ปกติจะเกิดหลังอัปเดตรายเดือนเท่านั้น) |
-| ดิสก์เต็ม | `ai models` แล้ว `ai remove` โมเดลที่ไม่ใช้ |
-| backup ไม่ทำงาน | `tail /var/log/ai-backup.log` ส่วนใหญ่เกิดจาก NAS ไม่ได้เชื่อมต่อ |
-| ไม่แน่ใจ | คัดลอกผลของ `ai status` และ `ai logs <บริการ>` มาถาม Claude ได้เลย |
+| เปิดหน้าแชทไม่ได้ | `ai status` ถ้า Open WebUI ไม่ตอบ ให้ `ai restart` แล้วดู `ai logs` |
+| หน้าแชทเปิดได้ แต่ไม่มีโมเดลให้เลือก | LM Studio ไม่ได้เปิด server: เปิดที่แท็บ Developer และตรวจขั้นที่ 5.3 |
+| หลังไฟดับ เข้าไม่ได้ | รอ 5 นาที ถ้ายังไม่ได้ ตรวจว่าเครื่องเปิดอยู่ และ Autologon ทำงาน (ขั้นที่ 6) |
+| AI ตอบช้าผิดปกติ | ดู GPU ใน `ai status` และตรวจในหน้าโหลดโมเดลของ LM Studio ว่า GPU Offload สูงสุด |
+| ComfyUI แจ้งว่า VRAM ไม่พอ | `ai free-gpu` |
+| backup ล้มเหลว | ดูหัวข้อ Backup ล่าสุดใน `ai status` ส่วนใหญ่เกิดจาก NAS ปิดหรือรหัสผ่าน NAS ถูกเปลี่ยน (รัน `setup-backup.ps1` ใหม่) |
+| ไม่แน่ใจ | คัดลอกผลของ `ai status` และ `ai logs` มาถาม Claude ได้เลย |
 
 ## ความปลอดภัย
 
-- Ollama **ไม่เปิดพอร์ต**ออกนอก Docker เพราะไม่มีระบบยืนยันตัวตน
-- ComfyUI เปิดเฉพาะผ่าน Tailscale เพราะไม่มีระบบล็อกอิน
+- **LM Studio รับคำขอเฉพาะในเครื่อง** และ firewall ปิดพอร์ต 1234 ไว้อีกชั้น เพราะ LM Studio ไม่มีระบบล็อกอิน
 - **ไม่ต้อง forward พอร์ตใดๆ บน router** การเข้าจากข้างนอกทั้งหมดผ่าน Tailscale
-- รหัสลับทั้งหมดถูกสุ่มให้อัตโนมัติ เก็บไว้ที่ `/opt/ai/stack/.env` และถูก backup ไป NAS ทุกคืน ห้ามให้ใครอื่นเข้าถึง share `ai-backup`
-- ระบบที่ใช้งานจริงควร pin เวอร์ชันของ image แทน `latest`/`main` เพื่อไม่ให้การอัปเดตทำระบบเสียโดยไม่รู้ตัว
-
-## แนะนำเพิ่มเติม: UPS
-
-**UPS ขนาด 1000VA/600W ขึ้นไป** (ราว 3,000–5,000 บาท) คือของที่ควรซื้อเป็นอย่างแรก เพราะช่วยป้องกัน RAID5 ของ NAS และข้อมูลเสียหายจากไฟดับ
+- `C:\ai\config.json` เก็บรหัสลับ และกำหนดสิทธิ์ให้เฉพาะ admin อ่านได้
+- ใช้รหัสผ่าน Windows ที่แข็งแรง เพราะเปิด Remote Desktop ไว้
+- ComfyUI ไม่มีระบบล็อกอิน เปิดใช้ผ่าน Tailscale เท่านั้น

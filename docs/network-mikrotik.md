@@ -215,7 +215,7 @@ add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=445 action=dst-nat 
 /ip firewall nat print where action=dst-nat
 ```
 
-พอร์ตเหล่านี้เปิดให้**เฉพาะเครื่องในบ้าน**เท่านั้น ไม่ได้เปิดออกอินเทอร์เน็ต เพราะ router ของ ISP ไม่ได้ forward ออกไป ส่วน SSH, Cockpit และหน้าตั้งค่า hAP ไม่ได้เปิดให้ชั้นล่าง ให้จัดการจากชั้นบนหรือผ่าน Tailscale
+พอร์ตเหล่านี้เปิดให้**เฉพาะเครื่องในบ้าน**เท่านั้น ไม่ได้เปิดออกอินเทอร์เน็ต เพราะ router ของ ISP ไม่ได้ forward ออกไป ส่วน Remote Desktop และหน้าตั้งค่า hAP ไม่ได้เปิดให้ชั้นล่าง ให้จัดการจากชั้นบนหรือผ่าน Tailscale
 
 ## ขั้นที่ 8: ต่อ NAS และจอง IP
 
@@ -242,7 +242,7 @@ add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=445 action=dst-nat 
 /ping 192.168.88.10 count=3
 ```
 
-ทำแบบเดียวกันกับ **AI Server** ที่ **ether2** โดยจองเป็น `192.168.88.20` หลังติดตั้ง Ubuntu เสร็จ
+ทำแบบเดียวกันกับ **AI Server** ที่ **ether2** โดยจองเป็น `192.168.88.20` หลังติดตั้ง Windows (หรือ Ubuntu) เสร็จ
 
 ### กรณี NAS เคยตั้ง IP ตายตัวไว้คนละวง
 
@@ -289,9 +289,9 @@ add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=445 action=dst-nat 
 | หน้าจัดการ NAS (DSM) | `https://192.168.1.30:5001` | `https://192.168.88.10:5001` |
 | ไฟล์ NAS (Finder: ⌘K) | `smb://192.168.1.30` | `smb://192.168.88.10` |
 | ตั้งค่า hAP (WinBox) | ❌ เข้าไม่ได้ (ตั้งใจให้ปลอดภัย) | `192.168.88.1` |
-| SSH เข้า server | ❌ | `ssh user@192.168.88.20` |
+| Remote Desktop เข้า server | ❌ (ใช้ Tailscale แทน) | `192.168.88.20` |
 
-**ค่าสำหรับคู่มือติดตั้ง ([install.md](install.md)):** สิทธิ์ NFS บน NAS ให้ IP `192.168.88.20` และ `setup-backup.sh` ใช้ IP ของ NAS `192.168.88.10`
+**ค่าสำหรับคู่มือติดตั้ง ([install.md](install.md)):** server `192.168.88.20` และ `setup-backup.ps1` ใช้ IP ของ NAS `192.168.88.10`
 
 ---
 
