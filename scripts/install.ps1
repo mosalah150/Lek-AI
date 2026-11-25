@@ -94,7 +94,7 @@ if (-not (Test-Path $ConfigPath)) {
     $cfg = [pscustomobject]@{
         SecretKey = $secret
         WebUIUrl  = ''
-        NasHost   = '192.168.88.10'
+        NasHost   = '192.168.1.10'
         HddDrive  = $(if ($hdd) { "${hdd}:" } else { 'C:' })
     }
     Save-AiConfig $cfg

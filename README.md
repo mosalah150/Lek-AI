@@ -10,7 +10,7 @@
 | **ดูแลระบบ** | Remote Desktop + คำสั่งลัด `ai` |
 | **ค่าใช้จ่ายต่อเดือน** | ค่าไฟประมาณ 400–700 บาท (ถ้ามีฮาร์ดแวร์อยู่แล้ว) |
 | **📘 คู่มือติดตั้งและใช้งาน** | [docs/install.md](docs/install.md) (ภาษาไทย ทีละขั้น) |
-| **🌐 คู่มือเครือข่าย (กรณีไม่มีสาย LAN ระหว่างชั้น)** | [docs/network-mikrotik.md](docs/network-mikrotik.md) (MikroTik hAP ac² เป็น Wi-Fi client) |
+| **🌐 คู่มือเครือข่าย (ตัวเลือก: กรณีไม่มีสาย LAN ถึง router)** | [docs/network-mikrotik.md](docs/network-mikrotik.md) (MikroTik hAP ac² เป็น Wi-Fi client) |
 
 ---
 

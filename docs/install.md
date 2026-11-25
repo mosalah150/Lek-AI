@@ -2,7 +2,7 @@
 
 AI Server เปิดทิ้งไว้ · จัดการจาก MacBook ผ่าน Remote Desktop · เหมาะกับผู้ใช้ 1–10 คน
 
-> ภาพรวมโครงการอยู่ที่ [README](../README.md) · ถ้าไม่มีสาย LAN ระหว่าง router กับ server/NAS ให้ทำ [คู่มือเครือข่าย MikroTik](network-mikrotik.md) ก่อน · ชุดติดตั้ง Ubuntu อยู่ที่ [`_ubuntu-version/`](../_ubuntu-version/)
+> ภาพรวมโครงการอยู่ที่ [README](../README.md) · คู่มือนี้ต่อ server และ NAS เข้า router บ้านโดยตรง ถ้าอยู่คนละชั้นและไม่มีสาย LAN ถึง router ให้ดู [คู่มือเครือข่าย MikroTik](network-mikrotik.md) (ตัวเลือก) · ชุดติดตั้ง Ubuntu อยู่ที่ [`_ubuntu-version/`](../_ubuntu-version/)
 
 ## สิ่งที่จะได้
 
@@ -21,7 +21,9 @@ AI Server เปิดทิ้งไว้ · จัดการจาก MacBo
 | **Tailscale** | โปรแกรม Windows | เข้าใช้จากข้างนอก + HTTPS ที่ถูกต้อง |
 | ComfyUI Desktop | โปรแกรม Windows (ตัวเลือก) | สร้างภาพ วิดีโอ และ asset เกม |
 
-**ค่าที่ใช้ในคู่มือ:** server `192.168.88.20` · NAS `192.168.88.10` (ตามคู่มือเครือข่าย) ถ้าเครือข่ายของคุณต่างจากนี้ ให้แทนด้วย IP จริง
+**ค่าที่ใช้ในคู่มือ:** ทุกเครื่องต่อสาย LAN เข้า router บ้าน (`192.168.1.1`) · server `192.168.1.20` · NAS `192.168.1.10` ถ้าเครือข่ายของคุณต่างจากนี้ ให้แทนด้วย IP จริง
+
+**เลือก IP ตายตัวให้อยู่นอกช่วงที่ router แจกอัตโนมัติ (DHCP pool)** ดูได้ในหน้า LAN ของ router เช่น router ของ True มักแจก `.33–.254` ดังนั้น `.10` และ `.20` จะไม่ชนกับเครื่องอื่น
 
 ---
 
@@ -34,7 +36,11 @@ AI Server เปิดทิ้งไว้ · จัดการจาก MacBo
 3. ตั้งชื่อเครื่องเป็น `ai-server`
 4. ติดตั้ง **NVIDIA RTX Enterprise Driver** (driver สำหรับการ์ดตระกูล Quadro) จาก nvidia.com แล้วรีสตาร์ต
 5. Windows Update ให้ครบจนไม่มีอัปเดตเหลือ แล้วรีสตาร์ต
-6. เสียบสาย LAN ที่ **ether2** ของ hAP แล้วจอง IP `192.168.88.20` ตามคู่มือเครือข่าย (ขั้นที่ 8)
+6. เสียบสาย LAN เข้า router แล้วตั้ง IP ตายตัว: **Settings > Network & internet > Ethernet > IP assignment > Edit > Manual** เปิด IPv4 แล้วใส่
+   - IP address `192.168.1.20` · Subnet mask `255.255.255.0` · Gateway `192.168.1.1`
+   - Preferred DNS `192.168.1.1` · Alternate DNS `1.1.1.1`
+
+   จากนั้นทดสอบใน Terminal: `ping 192.168.1.10` (NAS) และ `ping google.com`
 
 **HDD 2TB:** เปิด **Disk Management** ถ้า HDD ยังไม่มีไดรฟ์ ให้คลิกขวา > New Simple Volume (ระวัง: การ format จะลบข้อมูลบน HDD) แล้วจดตัวอักษรไดรฟ์ไว้ เช่น `D:`
 
@@ -176,7 +182,7 @@ cd C:\Lek-AI
 
 ## ใช้งานประจำวัน
 
-**จัดการจาก MacBook:** ติดตั้ง **Windows App** (ชื่อเดิม Microsoft Remote Desktop) จาก App Store แล้วเชื่อมไปที่ `192.168.88.20` (ในบ้าน) หรือ `ai-server` (ผ่าน Tailscale จากที่ไหนก็ได้)
+**จัดการจาก MacBook:** ติดตั้ง **Windows App** (ชื่อเดิม Microsoft Remote Desktop) จาก App Store แล้วเชื่อมไปที่ `192.168.1.20` (ในบ้าน) หรือ `ai-server` (ผ่าน Tailscale จากที่ไหนก็ได้)
 
 **คำสั่ง `ai`** (เปิด Terminal บน server):
 
@@ -192,9 +198,11 @@ cd C:\Lek-AI
 
 **ที่อยู่สำหรับใช้งาน:**
 
-| | ในบ้านชั้นบน | ในบ้านชั้นล่าง | นอกบ้าน (Tailscale) |
-|---|---|---|---|
-| แชท AI | `http://192.168.88.20:3000` | `http://192.168.1.30:3000` | `https://ai-server.<tailnet>.ts.net` |
+| | ในบ้าน | นอกบ้าน (Tailscale) |
+|---|---|---|
+| แชท AI | `http://192.168.1.20:3000` | `https://ai-server.<tailnet>.ts.net` |
+| หน้าจัดการ NAS (DSM) | `https://192.168.1.10:5001` | `https://<ชื่อ-NAS>:5001` (ชื่อ NAS ใน Tailscale) |
+| ไฟล์ NAS (Mac: Finder > ⌘K) | `smb://192.168.1.10` | `smb://<ชื่อ-NAS>` |
 
 ## ดูแลเดือนละครั้ง (ประมาณ 15 นาที)
 
@@ -208,7 +216,7 @@ cd C:\Lek-AI
 
 1. ติดตั้งเครื่องใหม่ตามขั้นที่ 1–3
 2. หยุด Open WebUI: `ai restart` จะเริ่มใหม่อัตโนมัติ ดังนั้นให้สั่ง `Stop-ScheduledTask "Lek-AI Open WebUI"` แทน
-3. คัดลอกโฟลเดอร์ backup ล่าสุดจาก `\\192.168.88.10\ai-backup` มาไว้ที่เครื่อง แล้วแตกไฟล์:
+3. คัดลอกโฟลเดอร์ backup ล่าสุดจาก `\\192.168.1.10\ai-backup` มาไว้ที่เครื่อง แล้วแตกไฟล์:
 
 ```powershell
 tar.exe -xzf .\open-webui-data.tgz -C C:\ai\open-webui
