@@ -174,6 +174,7 @@ cd C:\Lek-AI
 
 ```powershell
 & "$env:ProgramFiles\Tailscale\tailscale.exe" serve --bg --https=8443 8000
+New-NetFirewallRule -DisplayName 'Lek-AI ComfyUI 8443 (Tailscale)' -Direction Inbound -Protocol TCP -LocalPort 8443 -RemoteAddress 100.64.0.0/10 -Action Allow -Profile Private
 ```
 
 แล้วเปิด `https://ai-server.<tailnet>.ts.net:8443` (เปลี่ยน `8000` เป็นพอร์ตที่ ComfyUI ใช้จริง ดูได้ในหน้าตั้งค่าของ ComfyUI)
