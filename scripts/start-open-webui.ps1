@@ -20,6 +20,10 @@ $env:RAG_EMBEDDING_MODEL      = 'BAAI/bge-m3'             # รองรับ�
 $env:ENABLE_RAG_HYBRID_SEARCH = 'true'
 $env:RAG_RERANKING_MODEL      = 'BAAI/bge-reranker-v2-m3'
 
+# Open WebUI บางเวอร์ชันสร้างโฟลเดอร์ชั่วคราวใน /tmp ตายตัว (บน Windows คือ C:\tmp) ถ้าไม่มีโฟลเดอร์นี้จะเปิดไม่ขึ้น
+Set-Location $AiRoot
+New-Item -ItemType Directory -Force -Path (Join-Path (Split-Path $AiRoot -Qualifier) 'tmp') | Out-Null
+
 $exe = Join-Path $AiRoot 'open-webui\venv\Scripts\open-webui.exe'
 $log = Join-Path $LogDir 'open-webui.log'
 & $exe serve --host 0.0.0.0 --port 3000 *>> $log
