@@ -1,5 +1,5 @@
 ﻿#Requires -RunAsAdministrator
-# เชื่อม NAS (SMB) และตั้ง backup อัตโนมัติทุกคืน
+# เชื่อม NAS (SMB) และตั้ง backup อัตโนมัติทุกวัน (เลือกเวลาได้ ค่าเริ่มต้น 02:00)
 # รันใน Terminal แบบ Administrator ด้วยบัญชีเดียวกับที่ตั้ง Autologon:
 #   .\scripts\setup-backup.ps1
 # ต้องตั้งค่าบน NAS ตาม docs\install.md ขั้นที่ 8 ให้เสร็จก่อน
@@ -11,6 +11,11 @@ if ($nasIp) { $cfg.NasHost = $nasIp }
 $hdd = Read-Host "ไดรฟ์สำหรับพักไฟล์และสำเนาเอกสาร (HDD) [กด Enter เพื่อใช้ $($cfg.HddDrive)]"
 if ($hdd) { $cfg.HddDrive = $hdd.TrimEnd('\') }
 Save-AiConfig $cfg
+
+$at = Read-Host 'เวลา backup ทุกวัน รูปแบบ HH:mm [กด Enter เพื่อใช้ 02:00]'
+if (-not $at) { $at = '02:00' }
+$backupAt = [datetime]::ParseExact($at.Trim().Replace('.', ':'), 'HH:mm', [Globalization.CultureInfo]::InvariantCulture)
+$mirrorAt = $backupAt.AddMinutes(30)
 
 $nasUser = Read-Host 'ชื่อผู้ใช้บน NAS สำหรับ backup (เช่น ai-backup)'
 Write-Host 'กำลังบันทึกรหัสผ่าน NAS ไว้ใน Windows Credential Manager (ระบบจะถามรหัสผ่าน)...'
@@ -26,8 +31,8 @@ foreach ($share in 'ai-backup', 'ai-docs') {
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
 $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 3)
 foreach ($t in @(
-    @{ Name = 'Lek-AI Backup to NAS';   Script = 'backup-to-nas.ps1';   At = '02:00' },
-    @{ Name = 'Lek-AI Mirror NAS docs'; Script = 'mirror-nas-docs.ps1'; At = '02:30' }
+    @{ Name = 'Lek-AI Backup to NAS';   Script = 'backup-to-nas.ps1';   At = $backupAt.ToString('HH:mm') },
+    @{ Name = 'Lek-AI Mirror NAS docs'; Script = 'mirror-nas-docs.ps1'; At = $mirrorAt.ToString('HH:mm') }
 )) {
     $action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$AiRoot\scripts\$($t.Script)`""
     $trigger = New-ScheduledTaskTrigger -Daily -At $t.At

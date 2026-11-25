@@ -136,8 +136,8 @@ Lek-AI/
 │   ├── start-open-webui.ps1     ← เริ่ม Open WebUI (Task Scheduler เรียกตอนบูต)
 │   ├── ai.ps1                   ← คำสั่งลัด ai status / logs / restart / update ...
 │   ├── setup-backup.ps1         ← เชื่อม NAS และตั้ง backup อัตโนมัติ
-│   ├── backup-to-nas.ps1        ← backup ข้อมูลไป NAS (ทุกคืน 02:00)
-│   ├── mirror-nas-docs.ps1      ← สำรองเอกสารจาก NAS ลง HDD (ทุกคืน 02:30)
+│   ├── backup-to-nas.ps1        ← backup ข้อมูลไป NAS (ทุกวัน ตั้งเวลาได้)
+│   ├── mirror-nas-docs.ps1      ← สำรองเอกสารจาก NAS ลง HDD (30 นาทีหลัง backup)
 │   └── common.ps1               ← ฟังก์ชันที่ใช้ร่วมกัน
 └── _ubuntu-version/             ← ชุดติดตั้งทางเลือกสำหรับ Ubuntu (Docker + Ollama)
 ```

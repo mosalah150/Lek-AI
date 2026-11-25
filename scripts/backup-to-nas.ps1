@@ -1,5 +1,5 @@
 ﻿# สำรองข้อมูล Open WebUI (แชท ผู้ใช้ เอกสาร Knowledge) และค่าตั้งไปที่ NAS
-# Task Scheduler รันให้ทุกคืน 02:00 (ตั้งโดย setup-backup.ps1) · รันเองได้ด้วย  ai backup
+# Task Scheduler รันให้ทุกวันตามเวลาที่ตั้งใน setup-backup.ps1 (ค่าเริ่มต้น 02:00) · รันเองได้ด้วย  ai backup
 . "$PSScriptRoot\common.ps1"
 $cfg      = Read-AiConfig
 $Nas      = "\\$($cfg.NasHost)\ai-backup"

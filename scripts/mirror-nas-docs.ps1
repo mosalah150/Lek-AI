@@ -1,4 +1,4 @@
-﻿# ทำสำเนาเอกสารจาก NAS (ai-docs) ลง HDD ของ server ทุกคืน 02:30
+﻿# ทำสำเนาเอกสารจาก NAS (ai-docs) ลง HDD ของ server ทุกวัน (30 นาทีหลัง backup)
 # สำเนานี้มีไว้กรณี NAS เสียทั้งเครื่อง ส่วนการย้อนเวอร์ชันไฟล์ให้ใช้ Snapshot บน NAS
 . "$PSScriptRoot\common.ps1"
 $cfg     = Read-AiConfig
