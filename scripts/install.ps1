@@ -39,9 +39,22 @@ Set-ItemProperty -Path $wu -Name NoAutoRebootWithLoggedOnUsers -Value 1 -Type DW
 # ------------------------------------------------------------------ 3. Remote Desktop และ firewall
 Step '3/7 เปิด Remote Desktop และตั้ง firewall'
 Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 0
-Enable-NetFirewallRule -Group '@FirewallAPI.dll,-28752'                               # กลุ่ม Remote Desktop (ใช้ได้ทุกภาษา)
-Get-NetConnectionProfile | Where-Object { $_.NetworkCategory -eq 'Public' } |
-    Set-NetConnectionProfile -NetworkCategory Private                                 # เครือข่ายในบ้าน = Private
+# กลุ่ม Remote Desktop (ชื่อกลุ่มแบบนี้ใช้ได้ทุกภาษา): เปิดเฉพาะเครือข่าย Private
+Get-NetFirewallRule -Group '@FirewallAPI.dll,-28752' | Set-NetFirewallRule -Profile Private
+Enable-NetFirewallRule -Group '@FirewallAPI.dll,-28752'
+
+# ตั้งเป็น Private เฉพาะ LAN บ้าน (การ์ดที่มี default gateway) และ Tailscale
+# VPN อื่น เช่น ZeroTier ปล่อยเป็น Public ไว้ จะได้ไม่เปิด Open WebUI และ Remote Desktop ให้เครื่องในวงนั้น
+$vpnPattern = 'ZeroTier|WireGuard|OpenVPN|TAP-|Hyper-V|VirtualBox|VMware|Tailscale'
+$lanCfg = Get-NetIPConfiguration |
+    Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' -and
+                   $_.InterfaceDescription -notmatch $vpnPattern -and $_.InterfaceAlias -notmatch $vpnPattern } |
+    Select-Object -First 1
+if ($lanCfg) {
+    Set-NetConnectionProfile -InterfaceIndex $lanCfg.InterfaceIndex -NetworkCategory Private
+} else {
+    Warn 'ไม่พบการ์ด LAN ที่มี default gateway: ตรวจสาย LAN และการตั้ง IP แล้วรันสคริปต์นี้อีกครั้ง'
+}
 
 if (-not (Get-NetFirewallRule -DisplayName 'Lek-AI Open WebUI 3000' -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName 'Lek-AI Open WebUI 3000' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private | Out-Null
@@ -125,6 +138,9 @@ if (Test-Path $ts) {
     & $ts serve --bg 3000
     $serveOk = ($LASTEXITCODE -eq 0)
     $ErrorActionPreference = 'Stop'
+    # ให้ Remote Desktop ผ่าน Tailscale ใช้ได้ (เครื่องใน tailnet เป็นของเราเท่านั้น)
+    Get-NetConnectionProfile | Where-Object { $_.InterfaceAlias -match 'Tailscale' } |
+        Set-NetConnectionProfile -NetworkCategory Private
     if ($serveOk) {
         $dns = (((& $ts status --json) | Out-String | ConvertFrom-Json).Self.DNSName).TrimEnd('.')
         $cfg = Read-AiConfig
@@ -147,9 +163,7 @@ $ok = $false
 for ($i = 0; $i -lt 60; $i++) { if (Test-OpenWebUI) { $ok = $true; break }; Start-Sleep -Seconds 10 }
 if (-not $ok) { Warn 'Open WebUI ยังไม่ตอบ: รอสักครู่แล้วตรวจด้วยคำสั่ง  ai status  หรือดู log ด้วย  ai logs' }
 
-$lan = (Get-NetIPAddress -AddressFamily IPv4 |
-        Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.|100\.)' } |
-        Select-Object -First 1).IPAddress
+$lan = if ($lanCfg) { @($lanCfg.IPv4Address)[0].IPAddress } else { '(ไม่พบ IP ของ LAN)' }
 $url = (Read-AiConfig).WebUIUrl
 Write-Host @"
 
