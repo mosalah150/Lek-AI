@@ -168,16 +168,19 @@ cd C:\Lek-AI
 
 ## ขั้นที่ 9 (ตัวเลือก): ComfyUI
 
-1. ดาวน์โหลด **ComfyUI Desktop** สำหรับ Windows จาก comfy.org แล้วติดตั้ง (เก็บโมเดลไว้บน NVMe)
-2. ก่อนสร้างภาพ ให้คืน VRAM จาก LM Studio ด้วย `ai free-gpu`
-3. เปิดจาก MacBook ผ่าน Tailscale (Terminal แบบ Admin บน server):
+1. ดาวน์โหลด **ComfyUI Desktop** สำหรับ Windows (NVIDIA) จาก comfy.org แล้วติดตั้ง (เก็บโมเดลไว้บน NVMe) เปิดแอปจนขึ้น **Running** และจดเลข **Port** ในหน้า Overview (รุ่นใหม่ใช้ `8188`)
+2. ตั้งให้เปิดเองหลังล็อกอินและเปิดจาก MacBook ผ่าน Tailscale ได้ (Terminal แบบ Admin บน server):
 
 ```powershell
-& "$env:ProgramFiles\Tailscale\tailscale.exe" serve --bg --https=8443 8188
-New-NetFirewallRule -DisplayName 'Lek-AI ComfyUI 8443 (Tailscale)' -Direction Inbound -Protocol TCP -LocalPort 8443 -RemoteAddress 100.64.0.0/10 -Action Allow -Profile Private
+.\scripts\setup-comfyui.ps1
 ```
 
-แล้วเปิด `https://ai-server.<tailnet>.ts.net:8443` (`8188` คือพอร์ตของ ComfyUI Desktop รุ่นใหม่ ถ้าไม่ตรง ดูช่อง Port ในหน้า Overview ของแอป)
+สคริปต์จะถามพอร์ต เปิด firewall พอร์ต 8443 ให้เฉพาะเครื่องใน Tailscale และตั้งงาน `Lek-AI ComfyUI` ที่ทุกครั้งที่ล็อกอินจะตั้ง `tailscale serve` ใหม่และเปิดแอป ComfyUI (ดูผลที่ `C:\ai\logs\comfyui.log`)
+
+3. เปิด `https://ai-server.<tailnet>.ts.net:8443` จาก MacBook
+4. ก่อนสร้างภาพ ให้คืน VRAM จาก LM Studio ด้วย `ai free-gpu`
+
+ComfyUI ไม่มีระบบล็อกอิน ทุกเครื่องใน tailnet เดียวกันเปิดได้
 
 **ตรวจ license ของแต่ละโมเดลก่อนนำภาพไปใช้เชิงพาณิชย์**
 
