@@ -173,11 +173,11 @@ cd C:\Lek-AI
 3. เปิดจาก MacBook ผ่าน Tailscale (Terminal แบบ Admin บน server):
 
 ```powershell
-& "$env:ProgramFiles\Tailscale\tailscale.exe" serve --bg --https=8443 8000
+& "$env:ProgramFiles\Tailscale\tailscale.exe" serve --bg --https=8443 8188
 New-NetFirewallRule -DisplayName 'Lek-AI ComfyUI 8443 (Tailscale)' -Direction Inbound -Protocol TCP -LocalPort 8443 -RemoteAddress 100.64.0.0/10 -Action Allow -Profile Private
 ```
 
-แล้วเปิด `https://ai-server.<tailnet>.ts.net:8443` (เปลี่ยน `8000` เป็นพอร์ตที่ ComfyUI ใช้จริง ดูได้ในหน้าตั้งค่าของ ComfyUI)
+แล้วเปิด `https://ai-server.<tailnet>.ts.net:8443` (`8188` คือพอร์ตของ ComfyUI Desktop รุ่นใหม่ ถ้าไม่ตรง ดูช่อง Port ในหน้า Overview ของแอป)
 
 **ตรวจ license ของแต่ละโมเดลก่อนนำภาพไปใช้เชิงพาณิชย์**
 
