@@ -1,6 +1,7 @@
 ﻿# คำสั่งลัดสำหรับดูแล Lek-AI บน Windows
 # ใช้ผ่าน  ai <คำสั่ง>  ใน Terminal (คำสั่ง update / restart / backup ต้องเปิด Terminal แบบ Administrator)
 param([string]$Command = 'help', [string]$Arg = '')
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # ให้ภาษาไทยแสดงถูกเมื่อสั่งผ่าน SSH
 . "$PSScriptRoot\common.ps1"
 
 function Show-Section([string]$t) { Write-Host "`n== $t ==" -ForegroundColor Cyan }
