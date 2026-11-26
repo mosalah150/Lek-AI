@@ -184,6 +184,30 @@ ComfyUI ไม่มีระบบล็อกอิน ทุกเครื�
 
 **ตรวจ license ของแต่ละโมเดลก่อนนำภาพไปใช้เชิงพาณิชย์**
 
+## ขั้นที่ 10 (ตัวเลือก): สั่งงาน server จาก MacBook ผ่าน SSH
+
+เปิด SSH ให้รับเฉพาะเครื่องใน Tailscale และล็อกอินด้วย key เท่านั้น
+
+1. บน MacBook สร้าง key (ถ้ายังไม่มี) แล้วดู public key:
+
+```bash
+ssh-keygen -t ed25519 -C "macbook"
+cat ~/.ssh/id_ed25519.pub
+```
+
+2. บน server (Terminal แบบ Admin) รันแล้ววาง public key จากข้อ 1:
+
+```powershell
+.\scripts\setup-ssh.ps1
+```
+
+3. บน MacBook ทดลอง:
+
+```bash
+ssh <ชื่อผู้ใช้ Windows>@ai-server ai status
+ssh <ชื่อผู้ใช้ Windows>@ai-server ai free-gpu
+```
+
 ---
 
 ## ใช้งานประจำวัน

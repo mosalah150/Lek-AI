@@ -140,6 +140,7 @@ Lek-AI/
 │   ├── mirror-nas-docs.ps1      ← สำรองเอกสารจาก NAS ลง HDD (30 นาทีหลัง backup)
 │   ├── setup-comfyui.ps1        ← ตั้ง ComfyUI ให้เปิดเองและเปิดจาก Mac ผ่าน Tailscale (ตัวเลือก)
 │   ├── start-comfyui.ps1        ← เปิด ComfyUI และตั้ง tailscale serve (Task Scheduler เรียกตอนล็อกอิน)
+│   ├── setup-ssh.ps1            ← เปิด SSH เฉพาะ Tailscale ให้สั่งงานจาก Mac (ตัวเลือก)
 │   └── common.ps1               ← ฟังก์ชันที่ใช้ร่วมกัน
 └── _ubuntu-version/             ← ชุดติดตั้งทางเลือกสำหรับ Ubuntu (Docker + Ollama)
 ```
