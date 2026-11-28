@@ -48,8 +48,21 @@ switch ($Command) {
     }
     'free-gpu' {
         $lms = Get-LmsPath
-        if ($lms) { & $lms unload --all; Write-Host 'คืน VRAM จาก LM Studio แล้ว (โมเดลจะโหลดใหม่เองเมื่อมีคนแชท)' }
+        if ($lms) {
+            & $lms unload --all
+            Write-Host 'คืน VRAM จาก LM Studio แล้ว'
+            Write-Host 'ใช้ ComfyUI เสร็จแล้วให้รัน  ai load-model  เพื่อโหลดโมเดลแชทกลับด้วย context เต็ม (ถ้าปล่อยให้โหลดเอง context จะเล็กลง)'
+        }
         else { Write-Host 'ไม่พบคำสั่ง lms: ใช้ปุ่ม Eject ในหน้าจอ LM Studio แทน' }
+    }
+    'load-model' {
+        # โหลดโมเดลแชทด้วยค่าที่เหมาะกับเครื่องนี้ (context ยาว, ทีละ 1 แชท) และไม่ปลดเองเมื่อว่าง
+        $lms = Get-LmsPath
+        if (-not $lms) { Write-Host 'ไม่พบคำสั่ง lms' -ForegroundColor Red; break }
+        $m = Get-ChatModelConfig
+        & $lms unload --all 2>&1 | Out-Null
+        & $lms load $m.Model -c $m.ContextLength --parallel 1 --gpu max --no-speculative-draft-mtp -y
+        & $lms ps
     }
     'backup' {
         & "$PSScriptRoot\backup-to-nas.ps1"
@@ -71,6 +84,7 @@ switch ($Command) {
   ai restart     รีสตาร์ต Open WebUI                       (ต้องใช้ Terminal แบบ Administrator)
   ai models      ดูโมเดลที่ดาวน์โหลดไว้ใน LM Studio
   ai free-gpu    คืน VRAM ทันที (ก่อนใช้ ComfyUI)
+  ai load-model  โหลดโมเดลแชทด้วย context เต็ม (หลังใช้ ComfyUI เสร็จ)
   ai backup      สำรองข้อมูลไป NAS ทันที                    (ต้องใช้ Terminal แบบ Administrator)
   ai update      backup แล้วอัปเดต Open WebUI                (ต้องใช้ Terminal แบบ Administrator)
 '@

@@ -41,6 +41,16 @@ function Test-OpenWebUI {
     } catch { return $false }
 }
 
+# โมเดลแชทหลักและ context ที่ใช้ (แก้ได้ใน config.json: ChatModel, ChatContextLength)
+# 32768 คือค่าสูงสุดที่ qwen3.8-27b Q4 ใส่ใน VRAM 24GB ได้ ถ้ารับทีละ 1 แชท
+function Get-ChatModelConfig {
+    $cfg = if (Test-Path $ConfigPath) { Get-Content $ConfigPath -Raw | ConvertFrom-Json } else { $null }
+    [pscustomobject]@{
+        Model         = if ($cfg.ChatModel) { $cfg.ChatModel } else { 'qwen/qwen3.8-27b' }
+        ContextLength = if ($cfg.ChatContextLength) { [int]$cfg.ChatContextLength } else { 32768 }
+    }
+}
+
 function Get-LmsPath {
     $p = Join-Path $env:USERPROFILE '.lmstudio\bin\lms.exe'
     if (Test-Path $p) { return $p }
